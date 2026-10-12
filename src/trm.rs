@@ -41,8 +41,8 @@ pub fn putc(ch: u8) {
 pub fn putc(_ch: u8) {}
 
 // 启动入口：设栈、清 BSS、调用 rust_main。
-///
-/// 放在 .text.init 段（linker.ld 保证 _start 排在 .text 最前）。
+//
+// 放在 .text.init 段（linker.ld 保证 _start 排在 .text 最前）。
 #[cfg(target_arch = "riscv32")]
 core::arch::global_asm!(
     ".section .text.init",

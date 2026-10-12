@@ -106,10 +106,10 @@ extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
 }
 
 // 陷阱入口汇编。
-///
-/// 布局：Context 在栈上，35×4=140 字节，分配 144（16 对齐）。
-/// slot 2（offset 8）存原始 sp，由 addi 算术恢复。
-/// x5（t0）先存再用作 scratch；恢复时最后恢复。
+//
+// 布局：Context 在栈上，35×4=140 字节，分配 144（16 对齐）。
+// slot 2（offset 8）存原始 sp，由 addi 算术恢复。
+// x5（t0）先存再用作 scratch；恢复时最后恢复。
 #[cfg(target_arch = "riscv32")]
 core::arch::global_asm!(
     ".section .text.trap",
