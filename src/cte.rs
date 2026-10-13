@@ -9,7 +9,7 @@ pub const CONTEXT_SIZE: usize = 144;
 ///
 /// `#[repr(C)]` 保证字段顺序与汇编布局一致：
 /// - `gpr[0]`（x0）恒 0，不用
-/// - `gpr[2]`（x2/sp）在陷阱入口存原始 sp（addi 算术恢复）
+/// - `gpr[2]`（x2/sp）在陷阱入口存原始 sp（恢复时从 gpr[2] 读回）
 /// - `gpr[17]`（a7）用于 Event 解码
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -60,14 +60,20 @@ pub fn decode_event(ctx: &Context) -> Event {
     match (is_interrupt, cause, a7) {
         (true, 7, _) => Event::IrqTimer,
         (true, 3, _) => Event::IrqSoftware,
+        // M_EI（外部中断）：rremu 无此中断源，显式归 Error，避免静默兜底
+        (true, 11, _) => Event::Error,
         (false, 11, a7) if a7 == u32::MAX => Event::Yield,
         (false, 11, a7) if a7 == EXIT_MAGIC => Event::Null,
         (false, 11, _) => Event::Syscall,
+        // ECALL_FROM_U：U-mode ecall，语义与 syscall 相同
+        (false, 8, _) => Event::Syscall,
         (false, 2, _) => Event::IllInsn,
         (false, 3, _) => Event::Breakpoint,
         (false, 0 | 4 | 6, _) => Event::Misalign,
         (false, 5, _) => Event::LoadFault,
         (false, 7, _) => Event::StoreFault,
+        // INSTR_ACCESS_FAULT：取指访问异常，暂归 Error
+        (false, 1, _) => Event::Error,
         _ => Event::Error,
     }
 }
@@ -108,7 +114,7 @@ extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
 // 陷阱入口汇编。
 //
 // 布局：Context 在栈上，35×4=140 字节，分配 144（16 对齐）。
-// slot 2（offset 8）存原始 sp，由 addi 算术恢复。
+// slot 2（offset 8）存原始 sp，恢复时从 gpr[2] 读回（支持上下文切换）。
 // x5（t0）先存再用作 scratch；恢复时最后恢复。
 #[cfg(target_arch = "riscv32")]
 core::arch::global_asm!(
@@ -206,8 +212,8 @@ core::arch::global_asm!(
     "lw t6, 124(sp)",
     // 最后恢复 t0
     "lw t0, 20(sp)",
-    // 算术恢复 sp
-    "addi sp, sp, 144",
+    // 从 gpr[2] 恢复 sp（支持上下文切换）
+    "lw sp, 8(sp)",
     "mret",
 );
 
@@ -237,32 +243,32 @@ mod tests {
     }
 
     #[test]
-    fn decode_interrupts() {
-        assert_eq!(decode_event(&mk(1 << 31 | 7, 0)), Event::IrqTimer);
-        assert_eq!(decode_event(&mk(1 << 31 | 3, 0)), Event::IrqSoftware);
-    }
-
-    #[test]
-    fn decode_ecall_variants() {
-        assert_eq!(decode_event(&mk(11, u32::MAX)), Event::Yield);
-        assert_eq!(decode_event(&mk(11, EXIT_MAGIC)), Event::Null);
-        assert_eq!(decode_event(&mk(11, 42)), Event::Syscall);
-    }
-
-    #[test]
-    fn decode_exceptions() {
-        assert_eq!(decode_event(&mk(2, 0)), Event::IllInsn);
-        assert_eq!(decode_event(&mk(3, 0)), Event::Breakpoint);
-        assert_eq!(decode_event(&mk(0, 0)), Event::Misalign);
-        assert_eq!(decode_event(&mk(4, 0)), Event::Misalign);
-        assert_eq!(decode_event(&mk(6, 0)), Event::Misalign);
-        assert_eq!(decode_event(&mk(5, 0)), Event::LoadFault);
-        assert_eq!(decode_event(&mk(7, 0)), Event::StoreFault);
-    }
-
-    #[test]
-    fn decode_unknown() {
-        assert_eq!(decode_event(&mk(99, 0)), Event::Error);
-        assert_eq!(decode_event(&mk(1 << 31 | 99, 0)), Event::Error);
+    fn decode_event_full_cause_matrix() {
+        // 表驱动：锁定全部 mcause → Event 映射，避免遗漏 cause 静默落入 Error。
+        let cases: &[(u32, u32, Event)] = &[
+            // 中断（bit31=1）
+            (1 << 31 | 7, 0, Event::IrqTimer),
+            (1 << 31 | 3, 0, Event::IrqSoftware),
+            (1 << 31 | 11, 0, Event::Error), // M_EI：rremu 无外部中断设备
+            // ecall 变体
+            (11, u32::MAX, Event::Yield),
+            (11, EXIT_MAGIC, Event::Null),
+            (11, 42, Event::Syscall),
+            (8, 0, Event::Syscall), // ECALL_FROM_U：语义同 syscall
+            // 异常
+            (2, 0, Event::IllInsn),
+            (3, 0, Event::Breakpoint),
+            (0, 0, Event::Misalign),
+            (4, 0, Event::Misalign),
+            (6, 0, Event::Misalign),
+            (5, 0, Event::LoadFault),
+            (7, 0, Event::StoreFault),
+            (1, 0, Event::Error), // INSTR_ACCESS_FAULT：取指访问异常
+            (99, 0, Event::Error),
+            (1 << 31 | 99, 0, Event::Error),
+        ];
+        for &(mcause, a7, want) in cases {
+            assert_eq!(decode_event(&mk(mcause, a7)), want, "mcause={mcause:#x} a7={a7:#x}");
+        }
     }
 }
