@@ -123,7 +123,12 @@ pub extern "C" fn __am_irq_handle(ctx: *mut Context) -> *mut Context {
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
-    ctx
+    // 未安装 handler：记录 mcause/mepc 后以 DEFAULT_TRAP_EXIT 终止。
+    unsafe {
+        DEFAULT_TRAP_INFO.cause = (*ctx).mcause;
+        DEFAULT_TRAP_INFO.pc = (*ctx).mepc;
+    }
+    crate::halt(DEFAULT_TRAP_EXIT)
 }
 
 // 陷阱入口汇编。
