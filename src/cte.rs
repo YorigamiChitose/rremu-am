@@ -124,9 +124,12 @@ pub extern "C" fn __am_irq_handle(ctx: *mut Context) -> *mut Context {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
     // 未安装 handler：记录 mcause/mepc 后以 DEFAULT_TRAP_EXIT 终止。
+    // 用 volatile 写，避免 release+LTO 下因无程序内读者而被死存储消除。
     unsafe {
-        DEFAULT_TRAP_INFO.cause = (*ctx).mcause;
-        DEFAULT_TRAP_INFO.pc = (*ctx).mepc;
+        core::ptr::write_volatile(
+            core::ptr::addr_of_mut!(DEFAULT_TRAP_INFO),
+            TrapInfo { cause: (*ctx).mcause, pc: (*ctx).mepc },
+        );
     }
     crate::halt(DEFAULT_TRAP_EXIT)
 }
