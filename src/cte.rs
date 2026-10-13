@@ -5,6 +5,21 @@ use crate::EXIT_MAGIC;
 /// Context 总大小（35 × 4 = 140 字节），分配时对齐到 16 → 144 字节。
 pub const CONTEXT_SIZE: usize = 144;
 
+/// 默认陷阱处理的退出码：guest 未安装 handler（未调 trap_init）时，
+/// 陷阱被默认 handler 捕获后以该码 halt。
+pub const DEFAULT_TRAP_EXIT: i32 = 0x10;
+
+/// 默认陷阱信息：记录最近一次 trap 的 mcause / mepc，供调试者（CLI `x`）读取。
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct TrapInfo {
+    pub cause: u32,
+    pub pc: u32,
+}
+
+/// 默认陷阱处理写入的信息（no_std 无 printf，经全局变量暴露）。
+pub static mut DEFAULT_TRAP_INFO: TrapInfo = TrapInfo { cause: 0, pc: 0 };
+
 /// 陷阱上下文：32 GPR + mcause + mstatus + mepc。
 ///
 /// `#[repr(C)]` 保证字段顺序与汇编布局一致：

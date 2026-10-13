@@ -9,7 +9,7 @@ pub mod cte;
 pub mod ioe;
 pub mod trm;
 
-pub use cte::{Context, Event, Handler, trap_init};
+pub use cte::{Context, Event, Handler, trap_init, DEFAULT_TRAP_EXIT, DEFAULT_TRAP_INFO};
 pub use ioe::{clint_get_time, clint_set_msip, clint_set_timercmp, uart_getc};
 pub use trm::{halt, putc};
 
