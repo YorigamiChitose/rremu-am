@@ -256,6 +256,16 @@ mod tests {
         assert_eq!(std::mem::size_of::<Context>(), 140);
     }
 
+    #[test]
+    fn trap_info_layout_and_default_exit() {
+        assert_eq!(DEFAULT_TRAP_EXIT, 0x10);
+        let info = TrapInfo { cause: 0, pc: 0 };
+        assert_eq!(std::mem::size_of::<TrapInfo>(), 8);
+        let base = &info as *const _ as *const u8;
+        assert_eq!(&info.cause as *const _ as usize - base as usize, 0);
+        assert_eq!(&info.pc as *const _ as usize - base as usize, 4);
+    }
+
     fn mk(mcause: u32, a7: u32) -> Context {
         let mut ctx = Context { gpr: [0; 32], mcause, mstatus: 0, mepc: 0 };
         ctx.gpr[17] = a7;
