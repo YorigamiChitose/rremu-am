@@ -58,6 +58,9 @@ core::arch::global_asm!(
     "addi t0, t0, 4",
     "j 1b",
     "2:",
+    // 安装默认陷阱入口（BIOS 式兜底；guest 可经 trap_init 覆盖 handler）
+    "la t0, __am_asm_trap",
+    "csrw mtvec, t0",
     "call rust_main",
     // rust_main 应不返回（-> !）；兜底死循环
     "3:",
