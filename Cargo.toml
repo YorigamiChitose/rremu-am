@@ -1,3 +1,7 @@
+[workspace]
+members = ["report"]
+resolver = "2"
+
 [package]
 name = "rremu-am"
 version = "0.1.0"

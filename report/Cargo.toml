@@ -1,0 +1,12 @@
+[package]
+name = "rremu-report"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rremu-am = { path = ".." }
+rremu-machine = { path = "../../rremu/crates/rremu-machine" }
+rremu-decode = { path = "../../rremu/crates/rremu-decode" }
+rremu-isa = { path = "../../rremu/crates/rremu-isa" }
+goblin = { version = "0.10", default-features = false, features = ["elf32", "elf64", "endian_fd"] }
+anyhow = "1"
