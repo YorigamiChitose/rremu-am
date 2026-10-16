@@ -17,5 +17,30 @@ pub use trm::{halt, putc};
 /// 与 rremu-cpu 的 EXIT_MAGIC 保持一致。
 pub const EXIT_MAGIC: u32 = 0xCAFE_0000;
 
+/// 已知退出码的语义描述（供离线工具 rremu-report / 调试者使用）。
+///
+/// 未识别的 code 返回 `None`（可能由 guest 自定义）。
+pub fn exit_code_desc(code: i32) -> Option<&'static str> {
+    match code {
+        0 => Some("success"),
+        1 => Some("generic failure"),
+        DEFAULT_TRAP_EXIT => Some("unhandled trap (default handler)"),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 extern crate std;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exit_code_desc_known_codes() {
+        assert_eq!(exit_code_desc(0), Some("success"));
+        assert_eq!(exit_code_desc(1), Some("generic failure"));
+        assert_eq!(exit_code_desc(DEFAULT_TRAP_EXIT), Some("unhandled trap (default handler)"));
+        assert_eq!(exit_code_desc(42), None);
+    }
+}
