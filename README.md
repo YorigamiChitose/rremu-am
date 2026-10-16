@@ -4,6 +4,20 @@ rremu 模拟器的 **RISC-V 抽象机器层（HAL）**，`no_std` `rlib` 库 cra
 对应 abstract-machine 的设计理念，为 guest 程序提供最小运行时、陷阱处理与设备抽象 API。
 仅支持 RV32IMA + C（`riscv32imac-unknown-none-elf` 目标）。
 
+本仓库为 Cargo workspace，包含两个成员：
+
+| 成员 | 说明 |
+|---|---|
+| `rremu-am`（根，lib） | 上述 HAL 库（零依赖、`no_std`） |
+| `rremu-report`（`report/`，bin） | host 侧工具：解析 rremu 的 dump JSON + ELF，输出可读崩溃报告 |
+
+`rremu-report` 复用本库的 `exit_code_desc`（退出码语义）与 rremu 侧的
+`rremu-isa`/`rremu-decode`（反汇编），把结构化 dump 翻译成人可读文本：
+
+```sh
+cd report && cargo run --release -- <dump.json> [--elf <path>]
+```
+
 ## 分层
 
 | 层 | 模块 | 内容 |
