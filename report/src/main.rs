@@ -39,6 +39,7 @@ fn run() -> Result<()> {
     let text = std::fs::read_to_string(&dump_path)
         .with_context(|| format!("read {}", dump_path.display()))?;
     let dump: Dump = Dump::from_json(&text).context("parse dump json")?;
+    check_version(dump.format_version)?;
 
     let elf_path = elf_override.or_else(|| dump.elf.as_ref().map(|e| PathBuf::from(&e.path)));
     let symbols = match &elf_path {
@@ -46,8 +47,34 @@ fn run() -> Result<()> {
         None => Vec::new(),
     };
 
+    warn_on_elf_mismatch(&dump, elf_path.as_deref());
     print_report(&dump, &symbols);
     Ok(())
+}
+
+/// 校验 dump 格式版本（不匹配则失败，避免静默误读）。
+fn check_version(version: u32) -> Result<()> {
+    let supported = rremu_machine::dump::FORMAT_VERSION;
+    if version != supported {
+        anyhow::bail!("unsupported dump format_version {version} (this tool supports {supported})");
+    }
+    Ok(())
+}
+
+/// ELF 与 dump 记录的 sha256 不符时告警（符号可能错位）。
+fn warn_on_elf_mismatch(dump: &Dump, elf_path: Option<&Path>) {
+    let Some(expected) = dump.elf.as_ref().and_then(|e| e.sha256.as_deref()) else {
+        return;
+    };
+    let Some(p) = elf_path else { return };
+    let Some(actual) = rremu_machine::dump::ElfRef::from_path(&p.to_string_lossy()).sha256 else {
+        return;
+    };
+    if actual != expected {
+        eprintln!(
+            "warning: ELF sha256 mismatch (dump={expected}, file={actual}); symbols may be inaccurate"
+        );
+    }
 }
 
 /// 加载 ELF 符号（地址, 名称），按地址升序。
@@ -180,6 +207,12 @@ fn print_report(d: &Dump, symbols: &[(u64, String)]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn version_check() {
+        assert!(check_version(rremu_machine::dump::FORMAT_VERSION).is_ok());
+        assert!(check_version(rremu_machine::dump::FORMAT_VERSION + 1).is_err());
+    }
 
     #[test]
     fn symbolize_nearest() {
