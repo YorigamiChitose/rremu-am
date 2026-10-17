@@ -45,7 +45,7 @@ pub struct SContext {
     pub sepc: u32,
 }
 
-/// 事件类型（11 变体）。
+/// 事件类型（12 变体）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum Event {
@@ -53,7 +53,7 @@ pub enum Event {
     Null,
     /// 机器定时器中断（mcause bit31=1, code=7）。
     IrqTimer,
-    /// 机器软件中断（mcause bit31=1, code=3）。
+    /// 软件中断（machine code=3 或 supervisor code=1）。
     IrqSoftware,
     /// AM yield（ecall, a7=u32::MAX）。
     Yield,
@@ -69,6 +69,8 @@ pub enum Event {
     LoadFault,
     /// 存数访问异常（mcause code=7）。
     StoreFault,
+    /// 外部中断（machine code=11 或 supervisor code=9）。
+    IrqExternal,
     /// 其他未识别。
     Error,
 }
@@ -84,10 +86,9 @@ fn decode_cause(cause: u32, a7: u32) -> Event {
     let code = cause & 0x7fff_ffff;
 
     match (is_interrupt, code, a7) {
-        (true, 7, _) => Event::IrqTimer,
-        (true, 3, _) => Event::IrqSoftware,
-        // M_EI（外部中断）：rremu 无此中断源，显式归 Error，避免静默兜底
-        (true, 11, _) => Event::Error,
+        (true, 7 | 5, _) => Event::IrqTimer,
+        (true, 3 | 1, _) => Event::IrqSoftware,
+        (true, 11 | 9, _) => Event::IrqExternal,
         (false, 11, a7) if a7 == u32::MAX => Event::Yield,
         (false, 11, a7) if a7 == EXIT_MAGIC => Event::Null,
         (false, 11, _) => Event::Syscall,
@@ -446,8 +447,11 @@ mod tests {
         let cases: &[(u32, u32, Event)] = &[
             // 中断（bit31=1）
             (1 << 31 | 7, 0, Event::IrqTimer),
+            (1 << 31 | 5, 0, Event::IrqTimer),
             (1 << 31 | 3, 0, Event::IrqSoftware),
-            (1 << 31 | 11, 0, Event::Error), // M_EI：rremu 无外部中断设备
+            (1 << 31 | 1, 0, Event::IrqSoftware),
+            (1 << 31 | 11, 0, Event::IrqExternal),
+            (1 << 31 | 9, 0, Event::IrqExternal),
             // ecall 变体
             (11, u32::MAX, Event::Yield),
             (11, EXIT_MAGIC, Event::Null),
@@ -478,5 +482,9 @@ mod tests {
         assert_eq!(decode_event_s(&ctx), Event::Syscall);
         ctx.scause = 2;
         assert_eq!(decode_event_s(&ctx), Event::IllInsn);
+        ctx.scause = 1 << 31 | 5;
+        assert_eq!(decode_event_s(&ctx), Event::IrqTimer);
+        ctx.scause = 1 << 31 | 9;
+        assert_eq!(decode_event_s(&ctx), Event::IrqExternal);
     }
 }
