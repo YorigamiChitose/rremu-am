@@ -40,6 +40,68 @@ pub fn putc(ch: u8) {
 #[cfg(not(target_arch = "riscv32"))]
 pub fn putc(_ch: u8) {}
 
+/// 启动参数捕获：`_start` 在清 BSS 后保存 a0(hartid) / a1(dtb)，供 guest 读取。
+#[cfg(target_arch = "riscv32")]
+#[unsafe(no_mangle)]
+static mut BOOT_A0: u32 = 0;
+#[cfg(target_arch = "riscv32")]
+#[unsafe(no_mangle)]
+static mut BOOT_A1: u32 = 0;
+
+/// 启动时的 hartid（qemu-virt: a0）。
+#[cfg(target_arch = "riscv32")]
+pub fn boot_hartid() -> u32 {
+    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BOOT_A0)) }
+}
+
+#[cfg(not(target_arch = "riscv32"))]
+pub fn boot_hartid() -> u32 {
+    0
+}
+
+/// 启动时的 DTB 地址（qemu-virt: a1；未加载 DTB 时为 0）。
+#[cfg(target_arch = "riscv32")]
+pub fn boot_dtb() -> u32 {
+    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BOOT_A1)) }
+}
+
+#[cfg(not(target_arch = "riscv32"))]
+pub fn boot_dtb() -> u32 {
+    0
+}
+
+/// 从 M-mode 进入 S-mode：设置 MPP=S、mepc 与 a0/a1 后执行 `mret`，不返回。
+#[cfg(target_arch = "riscv32")]
+pub fn enter_supervisor(entry: u32, arg0: u32, arg1: u32) -> ! {
+    unsafe {
+        core::arch::asm!(
+            "csrr t0, mstatus",
+            "li t1, {mpp_mask}",
+            "not t1, t1",
+            "and t0, t0, t1",
+            "li t1, {mpp_s}",
+            "or t0, t0, t1",
+            "csrw mstatus, t0",
+            "csrw mepc, {entry}",
+            "mv a0, {arg0}",
+            "mv a1, {arg1}",
+            "mret",
+            mpp_mask = in(reg) 0b11u32 << 11,
+            mpp_s = in(reg) 1u32 << 11,
+            entry = in(reg) entry,
+            arg0 = in(reg) arg0,
+            arg1 = in(reg) arg1,
+            clobber_abi("C"),
+            options(noreturn),
+        );
+    }
+}
+
+#[cfg(not(target_arch = "riscv32"))]
+pub fn enter_supervisor(_entry: u32, _arg0: u32, _arg1: u32) -> ! {
+    panic!("enter_supervisor called on non-RISC-V target");
+}
+
 // 启动入口：设栈、清 BSS、调用 rust_main。
 //
 // 放在 .text.init 段（linker.ld 保证 _start 排在 .text 最前）。
@@ -58,6 +120,11 @@ core::arch::global_asm!(
     "addi t0, t0, 4",
     "j 1b",
     "2:",
+    // 保存 boot a0/a1（清 BSS 之后，避免被清零）
+    "la t0, BOOT_A0",
+    "sw a0, 0(t0)",
+    "la t0, BOOT_A1",
+    "sw a1, 0(t0)",
     // 安装默认陷阱入口（BIOS 式兜底；guest 可经 trap_init 覆盖 handler）
     "la t0, __am_asm_trap",
     "csrw mtvec, t0",

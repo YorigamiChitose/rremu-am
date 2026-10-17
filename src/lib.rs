@@ -11,7 +11,7 @@ pub mod trm;
 
 pub use cte::{Context, Event, Handler, trap_init, DEFAULT_TRAP_EXIT, DEFAULT_TRAP_INFO};
 pub use ioe::{clint_get_time, clint_set_msip, clint_set_timercmp, uart_getc};
-pub use trm::{halt, putc};
+pub use trm::{boot_dtb, boot_hartid, enter_supervisor, halt, putc};
 
 /// 宿主退出协议魔术数：M-mode ecall 且 a7 == EXIT_MAGIC 时模拟器以 a0 为退出码终止。
 /// 与 rremu-cpu 的 EXIT_MAGIC 保持一致。
