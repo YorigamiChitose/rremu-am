@@ -11,6 +11,8 @@ pub const STACK_TOP: u32 = RAM_BASE + RAM_SIZE;
 pub const UART_BASE: u32 = 0x1000_0000;
 /// CLINT 基址。
 pub const CLINT_BASE: u32 = 0x0200_0000;
+/// PLIC 基址（qemu-virt）。
+pub const PLIC_BASE: u32 = 0x0c00_0000;
 /// Framebuffer 基址。
 pub const FB_BASE: u32 = 0x2000_0000;
 /// Framebuffer 宽度。
