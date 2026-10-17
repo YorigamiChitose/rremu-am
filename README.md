@@ -24,7 +24,7 @@ cd report && cargo run --release -- <dump.json> [--elf <path>]
 |---|---|---|
 | TRM（图灵机） | `trm` | `_start` 启动（设栈、清 BSS、保存 a0/a1、调用 `rust_main`）、`halt(code)`、`putc`、`boot_hartid()` / `boot_dtb()`、`enter_supervisor(entry, a0, a1)` |
 | IOE（I/O 扩展） | `ioe` | `uart_getc`、`clint_get_time` / `clint_set_timercmp` / `clint_set_msip` |
-| CTE（陷阱/上下文） | `cte` | `Context`（M：32 GPR + mcause/mstatus/mepc）、`SContext`（S：scause/sstatus/sepc）、`Event`（11 变体）、`trap_init(handler)` / `trap_init_s(handler)`、`__am_asm_trap` / `__am_asm_strap`、默认 handler（`DEFAULT_TRAP_EXIT` / `DEFAULT_TRAP_INFO`） |
+| CTE（陷阱/上下文） | `cte` | `Context`（M：32 GPR + mcause/mstatus/mepc）、`SContext`（S：scause/sstatus/sepc）、`Event`（12 变体，含 S/M 软件/定时器/外部中断）、`trap_init(handler)` / `trap_init_s(handler)`、`__am_asm_trap` / `__am_asm_strap`、默认 handler（`DEFAULT_TRAP_EXIT` / `DEFAULT_TRAP_INFO`） |
 
 `arch` 模块承载地址映射常量（RAM / UART / CLINT / PLIC / FB）。它是 rremu 侧
 `rremu-config` 默认值的**人工镜像**（本仓库为独立 `no_std` 仓库，不依赖它）；
