@@ -70,6 +70,25 @@ pub fn boot_dtb() -> u32 {
     0
 }
 
+/// 配置 PMP0 为覆盖 4GiB 的 NAPOT 区间，允许 S/U 读写执行所有物理地址。
+///
+/// 仅用于测试/教学环境；真实 OS 应配置最小权限 PMP。
+#[cfg(target_arch = "riscv32")]
+pub fn pmp_allow_all() {
+    unsafe {
+        core::arch::asm!(
+            "li t0, 0x1fffffff",
+            "csrw pmpaddr0, t0",
+            "li t0, 0x1f",
+            "csrw pmpcfg0, t0",
+            out("t0") _,
+        );
+    }
+}
+
+#[cfg(not(target_arch = "riscv32"))]
+pub fn pmp_allow_all() {}
+
 /// 从 M-mode 进入 S-mode：设置 MPP=S、mepc 与 a0/a1 后执行 `mret`，不返回。
 #[cfg(target_arch = "riscv32")]
 pub fn enter_supervisor(entry: u32, arg0: u32, arg1: u32) -> ! {
