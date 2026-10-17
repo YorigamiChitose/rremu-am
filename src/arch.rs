@@ -13,6 +13,10 @@ pub const UART_BASE: u32 = 0x1000_0000;
 pub const CLINT_BASE: u32 = 0x0200_0000;
 /// PLIC 基址（qemu-virt）。
 pub const PLIC_BASE: u32 = 0x0c00_0000;
+/// syscon/test 基址（qemu-virt poweroff/reboot）。
+pub const SYSCON_BASE: u32 = 0x0010_0000;
+/// Goldfish RTC 基址（qemu-virt）。
+pub const RTC_BASE: u32 = 0x0010_1000;
 /// Framebuffer 基址。
 pub const FB_BASE: u32 = 0x2000_0000;
 /// Framebuffer 宽度。
