@@ -44,6 +44,8 @@ cd report && cargo run --release -- <dump.json> [--elf <path>]
   与参数后执行 `mret`，不返回
 - **S-mode 陷阱**：`trap_init_s(handler)` 安装 `stvec` 指向 `__am_asm_strap`；
   handler 接收 `SContext`（`scause/sstatus/sepc`），返回后经 `sret` 恢复
+- **测试用 PMP**：`pmp_allow_all()` 配置 NAPOT 覆盖 4GiB，允许 S/U 访问全部物理地址；
+  仅用于测试/教学，真实 OS 应配置最小权限 PMP
 - 非 RISC-V 目标下 API 退化为空实现（供 host 侧编译/单测）
 
 ## 测试
