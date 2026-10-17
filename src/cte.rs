@@ -82,6 +82,8 @@ pub fn decode_event(ctx: &Context) -> Event {
         (false, 11, _) => Event::Syscall,
         // ECALL_FROM_U：U-mode ecall，语义与 syscall 相同
         (false, 8, _) => Event::Syscall,
+        // ECALL_FROM_S：S-mode ecall，语义与 syscall 相同
+        (false, 9, _) => Event::Syscall,
         (false, 2, _) => Event::IllInsn,
         (false, 3, _) => Event::Breakpoint,
         (false, 0 | 4 | 6, _) => Event::Misalign,
@@ -288,6 +290,7 @@ mod tests {
             (11, EXIT_MAGIC, Event::Null),
             (11, 42, Event::Syscall),
             (8, 0, Event::Syscall), // ECALL_FROM_U：语义同 syscall
+            (9, 0, Event::Syscall), // ECALL_FROM_S：语义同 syscall
             // 异常
             (2, 0, Event::IllInsn),
             (3, 0, Event::Breakpoint),
