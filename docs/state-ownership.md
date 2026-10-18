@@ -72,9 +72,9 @@ S_HANDLER 未设置 → default_s_handler
 - 单 hart 假设只存在于实现细节，没有显式文档。
 - handler 注册不是线程安全/重入安全的。
 
-## 5. Target 状态模型
+## 5. 状态模型（已实现）
 
-新建：
+已新建：
 
 ```text
 src/state.rs
@@ -92,7 +92,7 @@ pub(crate) struct HalState {
 }
 ```
 
-目标：
+当前：
 
 - 所有 `static mut` 只在 `state.rs` 出现。
 - 对外 API 保持：

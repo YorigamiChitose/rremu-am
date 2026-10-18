@@ -103,7 +103,7 @@ _start
 - 没有显式的 `state` 模块。
 - 单 hart 假设只存在于代码隐含语义中。
 
-Target：
+当前结构：
 
 ```text
 src/
@@ -114,7 +114,8 @@ src/
 │   ├── context.rs
 │   ├── event.rs
 │   ├── entry.rs
-│   └── handler.rs
+│   ├── handler.rs
+│   └── tests.rs
 ├── ioe.rs
 └── arch.rs
 ```
