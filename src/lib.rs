@@ -39,6 +39,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn host_ioe_paths_are_non_riscv_noops() {
+        assert_eq!(uart_getc(), None);
+        assert_eq!(clint_get_time(), 0);
+        clint_set_timercmp(0x1234_5678_9abc_def0);
+        clint_set_msip(1);
+        putc(b'X');
+    }
+
+    #[test]
+    fn host_boot_args_default_to_zero() {
+        assert_eq!(boot_hartid(), 0);
+        assert_eq!(boot_dtb(), 0);
+    }
+
+    #[test]
+    fn host_pmp_allow_all_is_non_riscv_noop() {
+        pmp_allow_all();
+    }
+
+    #[test]
     fn exit_code_desc_known_codes() {
         assert_eq!(exit_code_desc(0), Some("success"));
         assert_eq!(exit_code_desc(1), Some("generic failure"));
