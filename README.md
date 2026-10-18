@@ -1,5 +1,8 @@
 # rremu-am
 
+> ⚠️ **AI 产物声明**：本仓库的代码与文档主要由 AI 在人工需求约束、审查与测试下生成，
+> 仅供学习/实验用途；不保证工程质量与长期维护。请以源码和测试结果为准。
+
 rremu 模拟器的 **RISC-V 抽象机器层（HAL）**，`no_std` `rlib` 库 crate。
 对应 abstract-machine 的设计理念，为 guest 程序提供最小运行时、陷阱处理与设备抽象 API。
 仅支持 RV32IMA + C（`riscv32imac-unknown-none-elf` 目标）。
