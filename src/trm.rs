@@ -40,18 +40,10 @@ pub fn putc(ch: u8) {
 #[cfg(not(target_arch = "riscv32"))]
 pub fn putc(_ch: u8) {}
 
-/// 启动参数捕获：`_start` 在清 BSS 后保存 a0(hartid) / a1(dtb)，供 guest 读取。
-#[cfg(target_arch = "riscv32")]
-#[unsafe(no_mangle)]
-static mut BOOT_A0: u32 = 0;
-#[cfg(target_arch = "riscv32")]
-#[unsafe(no_mangle)]
-static mut BOOT_A1: u32 = 0;
-
 /// 启动时的 hartid（qemu-virt: a0）。
 #[cfg(target_arch = "riscv32")]
 pub fn boot_hartid() -> u32 {
-    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BOOT_A0)) }
+    crate::state::read_boot_hartid()
 }
 
 #[cfg(not(target_arch = "riscv32"))]
@@ -62,7 +54,7 @@ pub fn boot_hartid() -> u32 {
 /// 启动时的 DTB 地址（qemu-virt: a1；未加载 DTB 时为 0）。
 #[cfg(target_arch = "riscv32")]
 pub fn boot_dtb() -> u32 {
-    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BOOT_A1)) }
+    crate::state::read_boot_dtb()
 }
 
 #[cfg(not(target_arch = "riscv32"))]

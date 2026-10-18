@@ -17,9 +17,6 @@ pub struct TrapInfo {
     pub pc: u32,
 }
 
-/// 默认陷阱处理写入的信息（no_std 无 printf，经全局变量暴露）。
-pub static mut DEFAULT_TRAP_INFO: TrapInfo = TrapInfo { cause: 0, pc: 0 };
-
 /// 陷阱上下文：32 GPR + mcause + mstatus + mepc。
 ///
 /// `#[repr(C)]` 保证字段顺序与汇编布局一致：
@@ -117,14 +114,10 @@ pub fn decode_event_s(ctx: &SContext) -> Event {
     decode_cause(ctx.scause, ctx.gpr[17])
 }
 
-/// 全局处理函数指针（trap_init / trap_init_s 设置）。
-static mut HANDLER: Option<Handler> = None;
-static mut S_HANDLER: Option<SHandler> = None;
-
 /// 安装事件处理函数并设 mtvec 指向陷阱入口。
 #[cfg(target_arch = "riscv32")]
 pub fn trap_init(handler: Handler) {
-    unsafe { HANDLER = Some(handler) };
+    crate::state::install_m_handler(handler);
     unsafe {
         core::arch::asm!(
             "la t0, __am_asm_trap",
@@ -140,7 +133,7 @@ pub fn trap_init(_handler: Handler) {}
 /// 安装 S-mode 事件处理函数并设 stvec 指向 S 陷阱入口。
 #[cfg(target_arch = "riscv32")]
 pub fn trap_init_s(handler: SHandler) {
-    unsafe { S_HANDLER = Some(handler) };
+    crate::state::install_s_handler(handler);
     unsafe {
         core::arch::asm!(
             "la t0, __am_asm_strap",
@@ -158,7 +151,7 @@ pub fn trap_init_s(_handler: SHandler) {}
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn __am_irq_handle(ctx: *mut Context) -> *mut Context {
     let event = decode_event(unsafe { &*ctx });
-    let handler = unsafe { HANDLER }.unwrap_or(default_handler);
+    let handler = crate::state::m_handler().unwrap_or(default_handler);
     handler(event, ctx)
 }
 
@@ -167,7 +160,7 @@ pub extern "C" fn __am_irq_handle(ctx: *mut Context) -> *mut Context {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn __am_s_irq_handle(ctx: *mut SContext) -> *mut SContext {
     let event = decode_event_s(unsafe { &*ctx });
-    let handler = unsafe { S_HANDLER }.unwrap_or(default_s_handler);
+    let handler = crate::state::s_handler().unwrap_or(default_s_handler);
     handler(event, ctx)
 }
 
@@ -175,10 +168,7 @@ pub extern "C" fn __am_s_irq_handle(ctx: *mut SContext) -> *mut SContext {
 extern "C" fn default_s_handler(_ev: Event, ctx: *mut SContext) -> *mut SContext {
     // 未安装 S handler：记录现场后自旋（S-mode 不能直接 halt）。
     unsafe {
-        core::ptr::write_volatile(
-            core::ptr::addr_of_mut!(DEFAULT_TRAP_INFO),
-            TrapInfo { cause: (*ctx).scause, pc: (*ctx).sepc },
-        );
+        crate::state::write_default_trap_info((*ctx).scause, (*ctx).sepc);
     }
     loop {
         core::hint::spin_loop();
@@ -190,10 +180,7 @@ extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
     // 未安装 handler：记录 mcause/mepc 后以 DEFAULT_TRAP_EXIT 终止。
     // 用 volatile 写，避免 release+LTO 下因无程序内读者而被死存储消除。
     unsafe {
-        core::ptr::write_volatile(
-            core::ptr::addr_of_mut!(DEFAULT_TRAP_INFO),
-            TrapInfo { cause: (*ctx).mcause, pc: (*ctx).mepc },
-        );
+        crate::state::write_default_trap_info((*ctx).mcause, (*ctx).mepc);
     }
     crate::halt(DEFAULT_TRAP_EXIT)
 }

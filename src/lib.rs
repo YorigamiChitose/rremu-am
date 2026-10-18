@@ -7,9 +7,11 @@
 pub mod arch;
 pub mod cte;
 pub mod ioe;
+pub mod state;
 pub mod trm;
 
-pub use cte::{Context, Event, Handler, SContext, SHandler, trap_init, trap_init_s, DEFAULT_TRAP_EXIT, DEFAULT_TRAP_INFO};
+pub use cte::{Context, Event, Handler, SContext, SHandler, trap_init, trap_init_s, DEFAULT_TRAP_EXIT};
+pub use state::DEFAULT_TRAP_INFO;
 pub use ioe::{clint_get_time, clint_set_msip, clint_set_timercmp, uart_getc};
 pub use trm::{boot_dtb, boot_hartid, enter_supervisor, halt, pmp_allow_all, putc};
 
