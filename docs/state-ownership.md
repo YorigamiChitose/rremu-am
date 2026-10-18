@@ -26,7 +26,7 @@
 - 所有静态状态都是全局单例。
 - trap handler 不得并发运行。
 - 不支持 SMP 或 per-hart handler。
-- 若未来支持多 hart，必须改为 per-hart 状态表。
+- 当前不支持多 hart；多 hart 需要 per-hart 状态表。
 
 ## 3. 安全条件
 
@@ -104,7 +104,7 @@ pub(crate) struct HalState {
 - 其他模块通过窄访问器访问状态。
 - 访问器标注 Safety 条件。
 
-## 6. 重构约束
+## 6. 实现约束
 
 - 不改变 Context/SContext/TrapInfo 布局。
 - 不改变链接器可见符号：
@@ -121,7 +121,7 @@ pub(crate) struct HalState {
 
 ## 7. 验证
 
-重构后必须验证：
+验证项：
 
 ```text
 默认 handler 记录 cause/pc

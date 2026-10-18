@@ -90,11 +90,6 @@ trap_init_s(handler: SHandler)
 - 重复注册会覆盖旧 handler。
 - handler 指针必须指向 `'static` 代码。
 
-Target：
-
-- 注册状态移入 `state.rs`，对外仍保留这两个 API。
-- 增加显式单 hart 文档和安全条件。
-
 ## 6. 汇编入口
 
 ```text
@@ -227,4 +222,4 @@ boot_dtb() -> u32
 
 1. 更新本文档
 2. 更新布局测试
-3. 更新 rremu-test 或明确暂缓
+3. 更新 rremu-test 或对应文档
