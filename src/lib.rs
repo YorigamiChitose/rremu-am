@@ -2,10 +2,12 @@
 //! rremu-am：RISC-V 抽象机器层（HAL）。
 //!
 //! 对应 abstract-machine，提供 no_std RISC-V 运行时、陷阱处理与设备抽象 API。
-//! 仅支持 RV32IMA + C（riscv32imac-unknown-none-elf 目标）。
+//! 默认提供 RV32GC 能力（I/M/A/C/F/D），guest 测试使用
+//! `riscv32imafc-unknown-none-elf`；D 指令以原始编码覆盖。
 
 pub mod arch;
 pub mod cte;
+pub mod fp;
 pub mod ioe;
 pub mod state;
 pub mod trm;

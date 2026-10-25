@@ -11,7 +11,8 @@
 
 rremu 模拟器的 **RISC-V 抽象机器层（HAL）**，`no_std` `rlib` 库 crate。
 对应 abstract-machine 的设计理念，为 guest 程序提供最小运行时、陷阱处理与设备抽象 API。
-仅支持 RV32IMA + C（`riscv32imac-unknown-none-elf` 目标）。
+默认提供 RV32GC 能力（I/M/A/C/F/D）；guest 测试使用
+`riscv32imafc-unknown-none-elf` 目标，D 指令以原始 `.word` 编码覆盖。
 
 本仓库为 Cargo workspace，包含两个成员：
 
@@ -34,6 +35,7 @@ cd report && cargo run --release -- <dump.json> [--elf <path>]
 | TRM（图灵机） | `trm` | `_start` 启动（设栈、清 BSS、保存 a0/a1、调用 `rust_main`）、`halt(code)`、`putc`、`boot_hartid()` / `boot_dtb()`、`enter_supervisor(entry, a0, a1)` |
 | IOE（I/O 扩展） | `ioe` | `uart_getc`、`clint_get_time` / `clint_set_timercmp` / `clint_set_msip` |
 | CTE（陷阱/上下文） | `cte` | `Context`（M：32 GPR + mcause/mstatus/mepc）、`SContext`（S：scause/sstatus/sepc）、`Event`（12 变体，含 S/M 软件/定时器/外部中断）、`trap_init(handler)` / `trap_init_s(handler)`、`__am_asm_trap` / `__am_asm_strap`、默认 handler（`DEFAULT_TRAP_EXIT` / `DEFAULT_TRAP_INFO`） |
+| FP 测试辅助 | `fp` | `fcsr` / `fflags` / `frm` 与 `mstatus.FS` 读写、sticky flags 置位/清除；host 侧退化为 no-op |
 
 `arch` 模块承载地址映射常量（RAM / UART / CLINT / PLIC / FB）。它是 rremu 侧
 `rremu-config` 默认值的**人工镜像**（本仓库为独立 `no_std` 仓库，不依赖它）；
@@ -56,9 +58,12 @@ cd report && cargo run --release -- <dump.json> [--elf <path>]
 - **测试用 PMP**：`pmp_allow_all()` 配置 NAPOT 覆盖 4GiB，允许 S/U 访问全部物理地址；
   仅用于测试/教学，真实 OS 应配置最小权限 PMP
 - 非 RISC-V 目标下 API 退化为空实现（供 host 侧编译/单测）
+- **FP 上下文边界**：`Context` / `SContext` 不包含 FPR；trap 不负责保存 FP 寄存器。
+  FP 上下文切换由 `rremu` 的 `MachineSnapshot` round-trip 覆盖，HAL 只提供
+  测试所需的 FP CSR / FS 辅助。
 
 ## 测试
 
 ```sh
-cargo test   # host 侧纯单元测试（Context 布局、Event 解码）
+cargo test   # host 侧纯单元测试（Context 布局、Event 解码、FP 辅助 no-op）
 ```
