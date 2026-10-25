@@ -14,10 +14,10 @@ static mut S_HANDLER: Option<SHandler> = None;
 /// 启动参数捕获：`_start` 在清 BSS 后保存 a0(hartid) / a1(dtb)。
 #[cfg(target_arch = "riscv32")]
 #[unsafe(no_mangle)]
-pub static mut BOOT_A0: u32 = 0;
+pub(crate) static mut BOOT_A0: u32 = 0;
 #[cfg(target_arch = "riscv32")]
 #[unsafe(no_mangle)]
-pub static mut BOOT_A1: u32 = 0;
+pub(crate) static mut BOOT_A1: u32 = 0;
 
 #[cfg(target_arch = "riscv32")]
 pub(crate) fn install_m_handler(handler: Handler) {
