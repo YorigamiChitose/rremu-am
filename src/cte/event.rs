@@ -1,7 +1,7 @@
 //! Trap cause 到 Event 的映射。
 
-use crate::EXIT_MAGIC;
 use super::{Context, SContext};
+use crate::EXIT_MAGIC;
 
 /// 事件类型（12 变体）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,4 +74,3 @@ pub fn decode_event(ctx: &Context) -> Event {
 pub fn decode_event_s(ctx: &SContext) -> Event {
     decode_cause(ctx.scause, ctx.gpr[17])
 }
-

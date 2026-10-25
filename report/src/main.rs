@@ -28,8 +28,7 @@ fn run() -> Result<()> {
                 return Ok(());
             }
             "--elf" => {
-                elf_override =
-                    Some(PathBuf::from(args.next().context("--elf requires a path")?));
+                elf_override = Some(PathBuf::from(args.next().context("--elf requires a path")?));
             }
             _ if dump_path.is_none() => dump_path = Some(PathBuf::from(a)),
             _ => anyhow::bail!("unexpected argument: {a}"),
@@ -87,7 +86,11 @@ fn load_symbols(path: &Path) -> Result<Vec<(u64, String)>> {
         .filter(|s| s.st_value != 0)
         .filter_map(|s| {
             let name = elf.strtab.get_at(s.st_name)?;
-            if name.is_empty() { None } else { Some((s.st_value, name.to_owned())) }
+            if name.is_empty() {
+                None
+            } else {
+                Some((s.st_value, name.to_owned()))
+            }
         })
         .collect();
     syms.sort_by_key(|(a, _)| *a);
@@ -155,7 +158,11 @@ fn print_report(d: &Dump, symbols: &[(u64, String)]) {
         println!();
         println!("trap    : {}", rremu_isa::cause::cause_name(cause));
         println!("  mcause: {}", t.cause);
-        println!("  mepc  : {}{}", t.pc, symbolize(symbols, parse_hex_u64(&t.pc)));
+        println!(
+            "  mepc  : {}{}",
+            t.pc,
+            symbolize(symbols, parse_hex_u64(&t.pc))
+        );
         println!("  mtval : {}", t.mtval);
     }
 
@@ -171,7 +178,10 @@ fn print_report(d: &Dump, symbols: &[(u64, String)]) {
         d.machine.pc,
         symbolize(symbols, parse_hex_u64(&d.machine.pc))
     );
-    println!("  priv={} cycle={} instret={}", d.machine.priv_, d.machine.cycle, d.machine.instret);
+    println!(
+        "  priv={} cycle={} instret={}",
+        d.machine.priv_, d.machine.cycle, d.machine.instret
+    );
 
     // 指令 trace（反汇编）
     if !d.trace.is_empty() {
@@ -180,8 +190,15 @@ fn print_report(d: &Dump, symbols: &[(u64, String)]) {
         let fault_pc = d.trap.as_ref().map(|t| parse_hex_u64(&t.pc));
         for t in &d.trace {
             let pc = parse_hex(&t.pc);
-            let mark = if Some(u64::from(pc)) == fault_pc { "  <-- fault" } else { "" };
-            println!("  {pc:#010x}: {}{mark}", disasm(pc, parse_hex(&t.bits), t.len));
+            let mark = if Some(u64::from(pc)) == fault_pc {
+                "  <-- fault"
+            } else {
+                ""
+            };
+            println!(
+                "  {pc:#010x}: {}{mark}",
+                disasm(pc, parse_hex(&t.bits), t.len)
+            );
         }
     }
 
@@ -191,7 +208,14 @@ fn print_report(d: &Dump, symbols: &[(u64, String)]) {
         println!("events (last {}):", d.events.len());
         for e in &d.events {
             match e {
-                EventItem::Mem { cycle, kind, size, addr, value, device } => {
+                EventItem::Mem {
+                    cycle,
+                    kind,
+                    size,
+                    addr,
+                    value,
+                    device,
+                } => {
                     println!("  [{cycle}] {kind} {size} {addr} = {value} ({device})")
                 }
                 EventItem::Trap { cause, pc } => {
@@ -216,7 +240,10 @@ mod tests {
 
     #[test]
     fn symbolize_nearest() {
-        let syms = vec![(0x8000_0000u64, "_start".to_string()), (0x8000_00f2, "rust_main".to_string())];
+        let syms = vec![
+            (0x8000_0000u64, "_start".to_string()),
+            (0x8000_00f2, "rust_main".to_string()),
+        ];
         assert_eq!(symbolize(&syms, 0x8000_0000), " <_start>");
         assert_eq!(symbolize(&syms, 0x8000_0100), " <rust_main+0xe>");
         assert_eq!(symbolize(&syms, 0x7fff_0000), ""); // 低于首个符号

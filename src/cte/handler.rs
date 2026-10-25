@@ -1,6 +1,8 @@
 //! Handler 注册、派发与默认 trap 行为。
 
-use super::{decode_event, decode_event_s, Context, Event, Handler, SContext, SHandler, DEFAULT_TRAP_EXIT};
+use super::{
+    Context, DEFAULT_TRAP_EXIT, Event, Handler, SContext, SHandler, decode_event, decode_event_s,
+};
 
 /// 安装事件处理函数并设 mtvec 指向陷阱入口。
 #[cfg(target_arch = "riscv32")]
@@ -72,4 +74,3 @@ extern "C" fn default_handler(_ev: Event, ctx: *mut Context) -> *mut Context {
     }
     crate::halt(DEFAULT_TRAP_EXIT)
 }
-

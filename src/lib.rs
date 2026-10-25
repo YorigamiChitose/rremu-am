@@ -12,9 +12,11 @@ pub mod ioe;
 pub mod state;
 pub mod trm;
 
-pub use cte::{Context, Event, Handler, SContext, SHandler, trap_init, trap_init_s, DEFAULT_TRAP_EXIT};
-pub use state::DEFAULT_TRAP_INFO;
+pub use cte::{
+    Context, DEFAULT_TRAP_EXIT, Event, Handler, SContext, SHandler, trap_init, trap_init_s,
+};
 pub use ioe::{clint_get_time, clint_set_msip, clint_set_timercmp, uart_getc};
+pub use state::DEFAULT_TRAP_INFO;
 pub use trm::{boot_dtb, boot_hartid, enter_supervisor, halt, pmp_allow_all, putc};
 
 /// 宿主退出协议魔术数：M-mode ecall 且 a7 == EXIT_MAGIC 时模拟器以 a0 为退出码终止。
@@ -64,7 +66,10 @@ mod tests {
     fn exit_code_desc_known_codes() {
         assert_eq!(exit_code_desc(0), Some("success"));
         assert_eq!(exit_code_desc(1), Some("generic failure"));
-        assert_eq!(exit_code_desc(DEFAULT_TRAP_EXIT), Some("unhandled trap (default handler)"));
+        assert_eq!(
+            exit_code_desc(DEFAULT_TRAP_EXIT),
+            Some("unhandled trap (default handler)")
+        );
         assert_eq!(exit_code_desc(42), None);
     }
 }

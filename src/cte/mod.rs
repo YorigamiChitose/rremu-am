@@ -7,6 +7,6 @@ mod handler;
 #[cfg(test)]
 mod tests;
 
-pub use context::{Context, SContext, TrapInfo, CONTEXT_SIZE, DEFAULT_TRAP_EXIT};
-pub use event::{decode_event, decode_event_s, Event, Handler, SHandler};
+pub use context::{CONTEXT_SIZE, Context, DEFAULT_TRAP_EXIT, SContext, TrapInfo};
+pub use event::{Event, Handler, SHandler, decode_event, decode_event_s};
 pub use handler::{trap_init, trap_init_s};
