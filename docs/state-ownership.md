@@ -4,13 +4,13 @@
 
 | 状态 | 位置 | 类型 | 写入者 | 读取者 |
 |---|---|---|---|---|
-| `DEFAULT_TRAP_INFO` | `cte.rs` | `static mut TrapInfo` | 默认 M/S handler | 调试器、测试、外部观察 |
-| `HANDLER` | `cte.rs` | `static mut Option<Handler>` | `trap_init` | `__am_irq_handle` |
-| `S_HANDLER` | `cte.rs` | `static mut Option<SHandler>` | `trap_init_s` | `__am_s_irq_handle` |
-| `BOOT_A0` | `trm.rs` | `static mut u32` | `_start` | `boot_hartid` |
-| `BOOT_A1` | `trm.rs` | `static mut u32` | `_start` | `boot_dtb` |
+| `DEFAULT_TRAP_INFO` | `state.rs` | `static mut TrapInfo` | 默认 M/S handler | 调试器、测试、外部观察 |
+| `M_HANDLER` | `state.rs` | `static mut Option<Handler>` | `trap_init` | `__am_irq_handle` |
+| `S_HANDLER` | `state.rs` | `static mut Option<SHandler>` | `trap_init_s` | `__am_s_irq_handle` |
+| `BOOT_A0` | `state.rs` | `static mut u32` | `_start` | `boot_hartid` |
+| `BOOT_A1` | `state.rs` | `static mut u32` | `_start` | `boot_dtb` |
 | `EXIT_MAGIC` | `lib.rs` | `const u32` | 无 | halt / CPU 协议 |
-| `DEFAULT_TRAP_EXIT` | `cte.rs` | `const i32` | 无 | 默认 handler |
+| `DEFAULT_TRAP_EXIT` | `cte/context.rs` | `const i32` | 无 | 默认 handler |
 
 ## 2. 单 hart 假设
 
@@ -64,45 +64,28 @@ S_HANDLER 未设置 → default_s_handler
 3. 读取使用 volatile，避免优化删除。
 4. 不支持运行期修改启动参数。
 
-## 4. 当前问题
+## 4. 状态集中化
 
-- 静态状态分散在 `cte.rs` 和 `trm.rs`。
-- 没有统一的 `state` 模块。
-- `static mut` 直接在各函数内访问。
-- 单 hart 假设只存在于实现细节，没有显式文档。
-- handler 注册不是线程安全/重入安全的。
-
-## 5. 状态模型（已实现）
-
-已新建：
-
-```text
-src/state.rs
-```
-
-集中：
+所有 `static mut` 只在 `state.rs` 中声明和访问；其它模块通过窄访问器读写：
 
 ```rust
-pub(crate) struct HalState {
-    pub trap_info: TrapInfo,
-    pub m_handler: Option<Handler>,
-    pub s_handler: Option<SHandler>,
-    pub boot_a0: u32,
-    pub boot_a1: u32,
-}
+pub(crate) fn install_m_handler(handler: Handler)
+pub(crate) fn install_s_handler(handler: SHandler)
+pub(crate) fn m_handler() -> Option<Handler>
+pub(crate) fn s_handler() -> Option<SHandler>
+pub(crate) fn write_default_trap_info(cause: u32, pc: u32)
+pub(crate) fn read_boot_hartid() -> u32
+pub(crate) fn read_boot_dtb() -> u32
 ```
 
-当前：
+## 5. 状态访问约束
 
-- 所有 `static mut` 只在 `state.rs` 出现。
-- 对外 API 保持：
-  - `trap_init`
-  - `trap_init_s`
-  - `boot_hartid`
-  - `boot_dtb`
-  - `DEFAULT_TRAP_INFO` 兼容地址/读取方式
-- 其他模块通过窄访问器访问状态。
-- 访问器标注 Safety 条件。
+- `trap_init*` 必须在对应 trap 可能发生前调用。
+- handler 必须是 `'static` 函数指针。
+- 默认 handler 在未注册时使用；注册后覆盖。
+- `DEFAULT_TRAP_INFO` 只由默认 handler 写入，读取用于调试观测。
+- `BOOT_A0/BOOT_A1` 只在 `_start` 清 BSS 后写入，运行期只读。
+- 单 hart 模型下不引入锁；不提供 SMP 并发保证。
 
 ## 6. 实现约束
 

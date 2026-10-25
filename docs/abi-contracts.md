@@ -206,7 +206,26 @@ boot_dtb() -> u32
 - PMP 必须在进入 S/U 前配置。
 - `enter_supervisor` 不负责 PMP 配置。
 
-## 11. 兼容性
+## 11. FP 测试辅助
+
+`rremu_am::fp` 提供 guest 测试所需的 FP CSR / FS 访问：
+
+```rust
+read_mstatus() / read_fs() / write_fs(fs)
+read_fcsr() / write_fcsr(value)
+read_fflags() / write_fflags(value)
+clear_fflags() / set_fflags(bits)
+read_frm() / write_frm(value)
+```
+
+约束：
+
+- `Context` / `SContext` 不包含 FPR；trap 不保存 FP 寄存器。
+- FP 上下文切换由 rremu 的 `MachineSnapshot` 覆盖，不属于 HAL ABI。
+- 非 RISC-V 目标下读写退化为 0 / no-op，仅供 host 编译与测试。
+- FP 指令执行前必须确保 `mstatus.FS != Off`。
+
+## 12. 兼容性
 
 以下变更视为 ABI 破坏：
 

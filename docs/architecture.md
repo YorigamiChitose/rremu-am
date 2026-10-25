@@ -10,6 +10,8 @@ rremu-am
 ├── trm   启动入口、halt、boot args、supervisor entry
 ├── cte   trap 上下文、事件、handler、汇编入口
 ├── ioe   UART / CLINT MMIO 辅助
+├── fp    FP CSR / FS 测试辅助
+├── state 全局静态状态的唯一集中点
 └── arch  平台地址常量
 ```
 
@@ -59,6 +61,33 @@ rremu-am
 
 所有 MMIO 通过 `arch` 常量定位，不在业务代码中写裸地址。
 
+### FP
+
+职责：
+
+- 读写 `fcsr/fflags/frm`
+- 读写 `mstatus.FS`
+- 置位/清除 sticky flags
+- host 侧提供 no-op 回退
+
+不负责：
+
+- FPR 保存/恢复
+- trap 上下文布局
+- 调度或上下文切换
+
+### STATE
+
+职责：
+
+- 集中所有 `static mut`
+- 为 handler、boot args、默认 trap info 提供窄访问器
+
+不负责：
+
+- trap 解码
+- 设备访问
+
 ### ARCH
 
 职责：
@@ -96,14 +125,7 @@ _start
   → 汇编恢复上下文 → mret/sret
 ```
 
-## 5. 当前结构偏差
-
-- `cte.rs` 同时包含 ABI 结构、全局状态、汇编入口、派发和默认 handler。
-- 全局状态分散在 `cte.rs` 与 `trm.rs`。
-- 没有显式的 `state` 模块。
-- 单 hart 假设只存在于代码隐含语义中。
-
-当前结构：
+## 5. 模块文件
 
 ```text
 src/
@@ -117,16 +139,21 @@ src/
 │   ├── handler.rs
 │   └── tests.rs
 ├── ioe.rs
+├── fp.rs
 └── arch.rs
 ```
+
+`cte` 负责 ABI、汇编入口与 handler 派发；全局状态只在 `state.rs`。
 
 ## 6. 依赖规则
 
 ```text
-trm  -> cte (EXIT_MAGIC), arch
-cte  -> arch (无直接设备访问)
-ioe  -> arch
-arch -> 无依赖
+trm   -> state, arch
+cte   -> state（无直接设备访问）
+ioe   -> arch
+fp    -> 无依赖
+state -> cte（类型）
+arch  -> 无依赖
 ```
 
 禁止：
