@@ -1,4 +1,4 @@
-[target.riscv32imac-unknown-none-elf]
+[target.riscv32imafc-unknown-none-elf]
 rustflags = [
     "-C", "link-arg=-Tlinker.ld",
     "-C", "link-arg=--gc-sections",
