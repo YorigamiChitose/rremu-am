@@ -22,7 +22,9 @@ rremu 模拟器的 **RISC-V 抽象机器层（HAL）**，`no_std` `rlib` 库 cra
 | `rremu-report`（`report/`，bin） | host 侧工具：解析 rremu 的 dump JSON + ELF，输出可读崩溃报告 |
 
 `rremu-report` 复用本库的 `exit_code_desc`（退出码语义）与 rremu 侧的
-`rremu-isa`/`rremu-decode`（反汇编），把结构化 dump 翻译成人可读文本：
+`rremu-isa`/`rremu-decode`（反汇编），把结构化 dump 翻译成人可读文本。
+`rremu-am` lib 本身无依赖；`rremu-report` 是 host-only 工具，因此 workspace
+lockfile 会包含 rremu path crates。
 
 ```sh
 cd report && cargo run --release -- <dump.json> [--elf <path>]
